@@ -1,0 +1,54 @@
+# ---- Dependencies ----
+node_modules/
+
+# ---- Build output ----
+dist/
+release/
+*.tsbuildinfo
+.vite/
+
+# ---- Logs ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- OS cruft ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
+
+# ---- Editors ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# ---- Secrets / signing material (NEVER commit) ----
+*.pfx
+*.p12
+*.key
+*.pem
+*.cer
+.env
+.env.*
+secrets/
+
+# ---- Reverse-engineering / research outputs (must NOT be published) ----
+ghidra_out/
+ghidra_winrar/
+ghidra_scripts/
+winrar_re/
+ui_spec.*
+*.original.md
+
+# ---- Temp / crash ----
+*.stackdump
+.cache/
+.tmp/
+tmp/

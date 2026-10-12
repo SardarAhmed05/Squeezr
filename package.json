@@ -1,0 +1,102 @@
+{
+  "name": "squeezr",
+  "productName": "Squeezr",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A fast, modern, white-themed archiver with a high-ratio multithreaded engine",
+  "author": "Squeezr Project",
+  "license": "MIT",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "wait-on tcp:5173 && cross-env ELECTRON_RENDERER_URL=http://localhost:5173 electron .",
+    "build": "vite build",
+    "dist": "vite build && electron-builder --win --x64",
+    "sign": "powershell -ExecutionPolicy Bypass -NoProfile -File scripts/sign.ps1",
+    "dist:sign": "npm run dist && npm run sign",
+    "start": "cross-env NODE_ENV=production electron ."
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.squeezr.app",
+    "productName": "Squeezr",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/renderer/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/engine",
+        "to": "engine"
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Squeezr",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "artifactName": "Squeezr-${version}-setup.exe"
+    },
+    "fileAssociations": [
+      { "ext": "7z", "name": "7z Archive", "icon": "build/icon.ico" },
+      { "ext": "zip", "name": "ZIP Archive", "icon": "build/icon.ico" },
+      { "ext": "rar", "name": "RAR Archive", "icon": "build/icon.ico" },
+      { "ext": "tar", "name": "TAR Archive", "icon": "build/icon.ico" },
+      { "ext": "gz", "name": "GZip Archive", "icon": "build/icon.ico" },
+      { "ext": "bz2", "name": "BZip2 Archive", "icon": "build/icon.ico" },
+      { "ext": "xz", "name": "XZ Archive", "icon": "build/icon.ico" }
+    ],
+    "portable": {
+      "artifactName": "Squeezr-${version}-portable.exe"
+    }
+  }
+}

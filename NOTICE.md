@@ -2,6 +2,7 @@
 
 ## Independence and trademarks
 
+Squeezr is **inspired by** the WinRAR interface and workflow, as a tribute.
 Squeezr is an independent, open-source project. It is **not affiliated with,
 endorsed by, sponsored by, or associated with** win.rar GmbH or the authors of
 WinRAR.

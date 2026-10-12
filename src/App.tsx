@@ -621,8 +621,8 @@ export default function App() {
                     Engine: bundled 7-Zip (LGPL) · LZMA2 / PPMd, fully multithreaded.
                   </p>
                   <p className="muted">
-                    Independent project — not affiliated with, endorsed by, or sponsored by win.rar GmbH.
-                    "WinRAR" and "RAR" are trademarks of win.rar GmbH.
+                    Inspired by the classic WinRAR interface. Independent project — not affiliated with,
+                    endorsed by, or sponsored by win.rar GmbH. "WinRAR" and "RAR" are trademarks of win.rar GmbH.
                   </p>
                 </>
               ) : (

@@ -1,12 +1,14 @@
 # Squeezr
 
-A fast, modern, **white-themed** archiver with a high-ratio, multithreaded
-compression engine.
+A fast, modern, **white-themed** archiver — **inspired by the classic WinRAR
+interface** — with a high-ratio, multithreaded compression engine.
 
-> Squeezr is an **independent project**. It is **not affiliated with, endorsed
-> by, or sponsored by win.rar GmbH**. "WinRAR" and "RAR" are trademarks of
-> win.rar GmbH. Squeezr contains **no WinRAR code, icons, or other assets** — it
-> only interoperates with RAR archives using the open-source 7-Zip engine.
+> **Inspired by WinRAR — but independent.** Squeezr's look, layout and workflow
+> are a tribute to the WinRAR interface many of us grew up with. Squeezr is an
+> **independent project**: it is **not affiliated with, endorsed by, or
+> sponsored by win.rar GmbH**, and it ships **no WinRAR code, icons, or other
+> assets**. "WinRAR" and "RAR" are trademarks of win.rar GmbH, used here only to
+> truthfully describe that inspiration and file-format interoperability.
 > See [`NOTICE.md`](NOTICE.md).
 
 ## Highlights
@@ -22,6 +24,15 @@ compression engine.
   split volumes, solid archives, encryption (including encrypted file names).
 - **Open-with** — double-click / "Open with" an archive to open it in Squeezr
   (single-instance: opens in the running window).
+
+## Acknowledgements
+
+- **WinRAR** (win.rar GmbH · Alexander Roshal) — *the inspiration.* Squeezr's
+  interface, menus, dialogs and overall workflow are a modern, from-scratch
+  tribute to WinRAR. No WinRAR code, icons or other assets are used.
+- **7-Zip** (Igor Pavlov) — the bundled open-source engine (LZMA2 / PPMd /
+  BZip2 / Deflate, plus RAR/ZIP/7z extraction).
+- The **Electron**, **React** and **Vite** communities.
 
 ## Install (Windows)
 

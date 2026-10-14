@@ -31,4 +31,12 @@ contextBridge.exposeInMainWorld("wrc", {
     ipcRenderer.on("app:open-file", listener);
     return () => ipcRenderer.removeListener("app:open-file", listener);
   },
+  onCompressFiles: (cb) => {
+    const listener = (_e, files) => cb(files);
+    ipcRenderer.on("app:compress-files", listener);
+    return () => ipcRenderer.removeListener("app:compress-files", listener);
+  },
+
+  contextMenuGet: () => ipcRenderer.invoke("contextmenu:get"),
+  contextMenuSet: (on) => ipcRenderer.invoke("contextmenu:set", on),
 });

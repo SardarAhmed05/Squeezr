@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const engine = require("./engine.cjs");
+const contextmenu = require("./contextmenu.cjs");
 
 const DEFAULT_SETTINGS = {
   format: "7z",
@@ -15,6 +16,7 @@ const DEFAULT_SETTINGS = {
   extractOverwrite: "ask",
   extractUpdate: "replace",
   theme: "light",
+  shellMenu: true,
   favorites: [],
 };
 
@@ -46,6 +48,125 @@ function findArchiveArg(argv) {
   return (argv || []).slice(1).find((a) => typeof a === "string" && !a.startsWith("-") && ARCHIVE_ARG.test(a));
 }
 let pendingOpen = findArchiveArg(process.argv);
+let pendingCompress = null;
+
+/* ------------------------- CLI verbs (Explorer context menu) ------------------------- */
+const CLI_VERBS = new Set([
+  "--open",
+  "--extract-here",
+  "--extract-to",
+  "--test",
+  "--compress",
+  "--register-shell",
+  "--unregister-shell",
+]);
+
+function parseCli(argv) {
+  const args = (argv || []).slice(1);
+  const i = args.findIndex((a) => CLI_VERBS.has(a));
+  if (i === -1) {
+    const p = findArchiveArg(argv);
+    return p ? { verb: "--open", file: p, files: [p] } : null;
+  }
+  const verb = args[i];
+  const files = args.slice(i + 1).filter((a) => a && !a.startsWith("--"));
+  return { verb, file: files[0], files };
+}
+
+function shellInfo() {
+  const packaged = app.isPackaged;
+  return {
+    exe: process.execPath,
+    appDir: packaged ? "" : app.getAppPath(),
+    iconPath: packaged
+      ? path.join(process.resourcesPath, "icon.ico")
+      : path.join(__dirname, "..", "build", "icon.ico"),
+  };
+}
+
+function syncShellMenu() {
+  try {
+    const want = loadSettings().shellMenu !== false;
+    const cur = contextmenu.isEnabled();
+    if (want && !cur) contextmenu.enable(shellInfo());
+    else if (!want && cur) contextmenu.disable();
+  } catch (_) {}
+}
+
+function focusWindow() {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.focus();
+}
+
+async function runCli(cli, silent) {
+  if (!cli) return null;
+  if (cli.verb === "--register-shell") {
+    contextmenu.enable(shellInfo());
+    return { verb: cli.verb, ok: contextmenu.isEnabled() };
+  }
+  if (cli.verb === "--unregister-shell") {
+    contextmenu.disable();
+    return { verb: cli.verb, ok: !contextmenu.isEnabled() };
+  }
+  if (cli.verb === "--open") {
+    if (mainWindow) {
+      focusWindow();
+      mainWindow.webContents.send("app:open-file", cli.file);
+    } else {
+      pendingOpen = cli.file;
+    }
+    return { verb: cli.verb, ok: true, file: cli.file };
+  }
+  if (cli.verb === "--compress") {
+    if (mainWindow) {
+      focusWindow();
+      mainWindow.webContents.send("app:compress-files", cli.files);
+    } else {
+      pendingCompress = cli.files;
+    }
+    return { verb: cli.verb, ok: true, files: cli.files };
+  }
+  if (cli.verb === "--extract-here" || cli.verb === "--extract-to" || cli.verb === "--test") {
+    if (!cli.file) return { verb: cli.verb, ok: false, error: "no file" };
+    let dest = null;
+    let res;
+    if (cli.verb === "--extract-here") {
+      dest = path.dirname(cli.file);
+      res = await engine.extract(cli.file, dest, { overwrite: "overwrite" });
+    } else if (cli.verb === "--extract-to") {
+      dest = path.join(path.dirname(cli.file), path.basename(cli.file).replace(/\.[^.]+$/, ""));
+      res = await engine.extract(cli.file, dest, { overwrite: "overwrite" });
+    } else {
+      res = await engine.testReport(cli.file);
+    }
+    const result = { verb: cli.verb, file: cli.file, dest, ok: !!res.ok, output: (res.output || "").slice(0, 400) };
+    if (!silent && mainWindow) {
+      focusWindow();
+      const isTest = cli.verb === "--test";
+      const buttons = isTest ? ["OK"] : ["OK", "Open folder"];
+      dialog
+        .showMessageBox(mainWindow, {
+          type: res.ok ? "info" : "error",
+          title: isTest ? "Verify integrity" : "Extract",
+          message: res.ok
+            ? isTest
+              ? "Archive verified successfully."
+              : `Extracted to:\n${dest}`
+            : "Operation failed. See details below.",
+          detail: res.ok ? undefined : (res.output || "").slice(-600),
+          buttons,
+          defaultId: 0,
+          cancelId: 0,
+        })
+        .then((r) => {
+          if (!isTest && r.response === 1 && dest) shell.openPath(dest);
+        });
+    }
+    return result;
+  }
+  return null;
+}
 
 app.setName("Squeezr");
 if (process.platform === "win32") app.setAppUserModelId("com.squeezr.app");
@@ -93,6 +214,10 @@ function createWindow() {
       mainWindow.webContents.send("app:open-file", pendingOpen);
       pendingOpen = null;
     }
+    if (pendingCompress) {
+      mainWindow.webContents.send("app:compress-files", pendingCompress);
+      pendingCompress = null;
+    }
   });
 }
 
@@ -101,27 +226,78 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", (_e, argv) => {
-    const p = findArchiveArg(argv);
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-      if (p) mainWindow.webContents.send("app:open-file", p);
-    } else if (p) {
-      pendingOpen = p;
+    const cli = parseCli(argv);
+    if (cli) {
+      runCli(cli, false);
+    } else if (mainWindow) {
+      focusWindow();
     }
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    const cli = parseCli(process.argv);
+    const silent = process.env.WRC_CLI_SILENT === "1";
+
+    // Headless verification / scripted invocation: no window, print result, exit.
+    if (cli && silent) {
+      const r = await runCli(cli, true);
+      try {
+        process.stdout.write(JSON.stringify(r) + "\n");
+      } catch (_) {}
+      app.exit(r && r.ok ? 0 : 1);
+      return;
+    }
+
     createWindow();
+    syncShellMenu();
+
+    if (cli) {
+      if (cli.verb === "--register-shell" || cli.verb === "--unregister-shell") {
+        runCli(cli, false);
+      } else if (cli.verb === "--open") {
+        pendingOpen = cli.file;
+      } else if (cli.verb === "--compress") {
+        pendingCompress = cli.files;
+      } else {
+        mainWindow.webContents.once("did-finish-load", () => runCli(cli, false));
+      }
+    }
+
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
   });
 }
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
+// Add NSIS cleanup/unregister hook for context menu on uninstall.
+function addUninstallCleanup(nsisConfig) {
+  try {
+    const include = `
+!macro customInstall\n  ExecWait \x22\x22\\Squeezr.exe\x22 --register-shell\x22\n!macroend\n!macro customUnInstall
+  DeleteRegKey HKCU "Software\\Classes\\*\\shell\\SqueezrCompress"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.zip\\shell\\Squeezr"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.rar\\shell\\Squeezr"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.7z\\shell\\Squeezr"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.tar\\shell\\Squeezr"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.gz\\shell\\Squeezr"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.tgz\\shell\\Squeezr"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.bz2\\shell\\Squeezr"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.xz\\shell\\Squeezr"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.iso\\shell\\Squeezr"
+  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\.cab\\shell\\Squeezr"
+!macroend
+`;
+    if (!nsisConfig.include) nsisConfig.include = "";
+    if (nsisConfig.include.indexOf("customUnInstall") === -1) {
+      nsisConfig.include += include;
+    }
+  } catch (_) {}
+}
+
+const pkg = require("../package.json");
+if (pkg && pkg.build && pkg.build.nsis) {
+  addUninstallCleanup(pkg.build.nsis);
+}
 
 /* ------------------------- IPC: dialogs ------------------------- */
 ipcMain.handle("dialog:openArchive", async () => {
@@ -203,6 +379,14 @@ ipcMain.handle("settings:set", async (_e, partial) => {
   const next = { ...loadSettings(), ...partial };
   saveSettings(next);
   return next;
+});
+
+/* ------------------------- IPC: Explorer context menu ------------------------- */
+ipcMain.handle("contextmenu:get", async () => contextmenu.isEnabled());
+ipcMain.handle("contextmenu:set", async (_e, on) => {
+  if (on) contextmenu.enable(shellInfo());
+  else contextmenu.disable();
+  return contextmenu.isEnabled();
 });
 
 ipcMain.handle("favorites:add", async (_e, entry) => {

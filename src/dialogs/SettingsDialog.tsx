@@ -4,15 +4,21 @@ import { Modal, Tabs } from "./Modal";
 export function SettingsDialog(props: { onClose: () => void; onSaved?: (s: any) => void }) {
   const [tab, setTab] = useState(0);
   const [s, setS] = useState<any>(null);
+  const [shellMenu, setShellMenu] = useState<boolean | null>(null);
 
   useEffect(() => {
     window.wrc.settingsGet().then(setS);
+    window.wrc.contextMenuGet().then(setShellMenu);
   }, []);
 
   if (!s) return null;
   const set = (k: string, v: any) => setS({ ...s, [k]: v });
 
   async function save() {
+    if (shellMenu !== null) {
+      await window.wrc.contextMenuSet(shellMenu);
+      s.shellMenu = shellMenu;
+    }
     const next = await window.wrc.settingsSet(s);
     props.onSaved?.(next);
     props.onClose();
@@ -119,8 +125,21 @@ export function SettingsDialog(props: { onClose: () => void; onSaved?: (s: any) 
       {tab === 3 && (
         <div className="form">
           <div className="group">
-            <div className="group-title">File associations</div>
-            <div className="muted">Explorer context-menu entries and default-handler registration are planned next.</div>
+            <div className="group-title">Explorer integration</div>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={!!shellMenu}
+                disabled={shellMenu === null}
+                onChange={(e) => setShellMenu(e.target.checked)}
+              />
+              Show Squeezr in the file right-click menu
+            </label>
+            <div className="muted">
+              Adds a <b>Squeezr</b> submenu (Open / Extract Here / Extract to a new folder / Test) on archive files,
+              and <b>Compress with Squeezr…</b> on all files. Per-user; no admin needed. On Windows 11 these appear
+              under <b>Show more options</b>.
+            </div>
           </div>
         </div>
       )}

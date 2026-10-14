@@ -1,15 +1,8 @@
 # Squeezr
 
-A fast, modern, **white-themed** archiver — **inspired by the classic WinRAR
-interface** — with a high-ratio, multithreaded compression engine.
+A fast, modern, white-themed archiver with its own clean UI and a high-ratio, multithreaded compression engine. 
 
-> **Inspired by WinRAR — but independent.** Squeezr's look, layout and workflow
-> are a tribute to the WinRAR interface many of us grew up with. Squeezr is an
-> **independent project**: it is **not affiliated with, endorsed by, or
-> sponsored by win.rar GmbH**, and it ships **no WinRAR code, icons, or other
-> assets**. "WinRAR" and "RAR" are trademarks of win.rar GmbH, used here only to
-> truthfully describe that inspiration and file-format interoperability.
-> See [`NOTICE.md`](NOTICE.md).
+> **Independent and original.** Squeezr is an independent project with its own design, interface, menus, and icons. It is **not affiliated with, endorsed by, or sponsored by win.rar GmbH**. "WinRAR" and "RAR" are trademarks of win.rar GmbH, used only to describe file-format compatibility. Squeezr contains **no WinRAR code, icons, or other assets**. See [`NOTICE.md`](NOTICE.md).
 
 ## Highlights
 
@@ -27,9 +20,6 @@ interface** — with a high-ratio, multithreaded compression engine.
 
 ## Acknowledgements
 
-- **WinRAR** (win.rar GmbH · Alexander Roshal) — *the inspiration.* Squeezr's
-  interface, menus, dialogs and overall workflow are a modern, from-scratch
-  tribute to WinRAR. No WinRAR code, icons or other assets are used.
 - **7-Zip** (Igor Pavlov) — the bundled open-source engine (LZMA2 / PPMd /
   BZip2 / Deflate, plus RAR/ZIP/7z extraction).
 - The **Electron**, **React** and **Vite** communities.
@@ -41,6 +31,8 @@ interface** — with a high-ratio, multithreaded compression engine.
    It creates Start-menu and desktop shortcuts, registers archive file
    associations, and can launch the app when done.
 3. Uninstall any time from *Settings → Apps* or the Start-menu entry.
+
+**Known issue:** Squeezr is not yet signed with a certificate from a trusted authority. Windows may show a SmartScreen warning ("Windows protected your PC" — click **More info**, then **Run anyway**). With Smart App Control enabled, Windows may block the app entirely. A trusted signature is planned.
 
 Prefer no install? Run **`Squeezr-<version>-portable.exe`** — a single file
 that runs directly.
@@ -69,8 +61,9 @@ Requires Node.js 20+ and Python 3 with Pillow (icon script only).
 ## Signing
 
 Set `CSC_LINK` (path to a `.pfx`) and `CSC_KEY_PASSWORD` to sign the build with
-a real code-signing certificate before running `npm run dist`. Without a
-certificate the build is unsigned.
+a real code-signing certificate before running `npm run dist`. The current
+releases are **unsigned** (or self-signed for testing only). A trusted signature
+is planned.
 
 ## Third-party
 

@@ -23,6 +23,9 @@ declare global {
       listDir(dir: string): Promise<any>;
       openPath(p: string): Promise<string>;
       onOpenFile(cb: (p: string) => void): () => void;
+      onCompressFiles(cb: (files: string[]) => void): () => void;
+      contextMenuGet(): Promise<boolean>;
+      contextMenuSet(on: boolean): Promise<boolean>;
     };
   }
 }
